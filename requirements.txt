@@ -1,0 +1,5 @@
+py-cord
+ezcord
+colorama
+aiosqlite
+easy_pil
