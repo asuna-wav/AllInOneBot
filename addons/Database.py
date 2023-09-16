@@ -20,8 +20,8 @@ class DBChannel(ezcord.DBHandler):
 
     async def check(self, guild_id: int):
         await self.exec(
-            "INSERT OR IGNORE INTO channels VALUES (?, 0, 0, 0, 0)",
-            (guild_id,)
+            "INSERT OR IGNORE INTO channels VALUES (?, ?, ?, ?, ?)",
+            (guild_id, 0, 0, 0, 0)
         )
         
     async def get(self, guild_id: int, channel: str):
