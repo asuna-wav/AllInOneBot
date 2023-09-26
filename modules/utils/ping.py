@@ -45,6 +45,7 @@ class Ping(commands.Cog):
             
         BOT_PING = round(self.bot.latency * 1000)
         DATABASE_PING = round((end_time - start_time) * 1000)
+        
         if type is None:
             return await emb.info(ctx=ctx, description=f"⚙️ • Database :: **{DATABASE_PING}ms**\n🤖 • Bot :: **{BOT_PING}ms**")
         if type == PINGLIST[0]:

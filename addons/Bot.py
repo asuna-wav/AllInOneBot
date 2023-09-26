@@ -7,8 +7,11 @@ from discord.commands import ApplicationContext
 from discord.errors import DiscordException
 
 from .Log import Logger
+from colorama import Fore
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+from discord.ext.ipc import Server
+from dashboard import _dashboard_start
 
 
 class Bot(ezcord.PrefixBot):
@@ -16,6 +19,7 @@ class Bot(ezcord.PrefixBot):
         super().__init__(command_prefix=commands.when_mentioned_or("-"), intents=discord.Intents.all(), ready_event=None)
         os.system("cls" if os.name == "nt" else "clear")
         self.load_all_cogs()
+        self.ipc = Server(self, secret_key="keks")
 
     def load_cogs(self, directory: str) -> None:
         self.log = Logger().log
@@ -43,8 +47,11 @@ class Bot(ezcord.PrefixBot):
         self.load_subdir("modules")
 
     async def on_ready(self):
+        await self.ipc.start()
         self.log = Logger().log
         self.log(f"Logged in as {self.user} ({self.user.id})")
+        print(f"=== Running on "+ Fore.LIGHTMAGENTA_EX + "http://localhost:8000" + Fore.RESET + " ===")
+        print(F'IF THE DASHBOARD IS STARTED (START THE DASHBOARD.PY IF U WANT TO START IT)')
         await self.sync_commands()
         await self.change_presence(
             activity=discord.CustomActivity(name="🌊 :: Loading"), status=discord.Status.idle
@@ -79,6 +86,21 @@ class Bot(ezcord.PrefixBot):
         else:
             raise Exception("Invalid Token")
         
+    @Server.route()
+    async def guild_count(self, _):
+        return str(len(self.guilds))
+    
+    @Server.route()
+    async def command_count(self, _):
+        # commands = []
+        # for cmd in self.walk_application_commands:
+        #     print(cmd)
+        #     commands.append(cmd)
+        return str(self.walk_application_commands)
+
+    async def on_ipc_error(self, endpoint: str, exc: Exception):
+        raise exc
+        
     @tasks.loop(minutes=5)
     async def _heartbeat(self):
         if self._heartbeat.current_loop == 0:
@@ -86,35 +108,3 @@ class Bot(ezcord.PrefixBot):
         
         self.log = Logger().log
         self.log(f"Heartbeat - {round(self.latency * 1000)}ms")
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def reload(self, ctx):
-        await ctx.message.delete()
-        reloaded = []
-        not_reloaded = []
-
-        for file in os.listdir(f"modules.utils"):
-            if file.endswith(".py"):
-                try:
-                    self.reload_extension(f"modules.utils.{file[:-3]}")
-                    reloaded.append(f"✅ :: {file[:-3]}")
-                except Exception as e:
-                    not_reloaded.append(f"❌ {file[:-3]}: ```py\n{e}```")
-
-        for file in os.listdir(f"Events"):
-            if file.endswith(".py"):
-                try:
-                    self.reload_extension(f"Events.{file[:-3]}")
-                    reloaded.append(f"✅ :: {file[:-3]}")
-                except Exception as e:
-                    not_reloaded.append(f"❌ {file[:-3]}: ```py\n{e}```")
-
-        embed = discord.Embed(
-            title="⚙️・COGS GELADEN",
-            description="\n".join(reloaded),
-            color=discord.Colour.embed_background(),
-        )
-        if not_reloaded:
-            embed.add_field(name="Error beim Reloaden:", value="\n".join(not_reloaded))
-        await ctx.send(embed=embed)
